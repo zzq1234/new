@@ -54,17 +54,23 @@
     - install
     - install:code
 
+- name: wtf
+  debug:
+    msg: "{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  with_items: "{{ XQWATCHER_COURSES }}"
+
 - name: Write out requirements.txt
   template:
     src: "edx/app/xqwatcher/data/requirements.txt.j2"
-    dest: "{{ xqwatcher_app_dir }}/data/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt"
+    dest: "{{ xqwatcher_app_dir }}/data/testing-requirements.txt"
     owner: root
     group: root
     mode: "0440"
-  with_items: "{{ XQWATCHER_COURSES }}"
   tags:
     - install
     - install:code
+
+- fail: Stop here
 
 - name: Install course specific python requirements
   pip:
