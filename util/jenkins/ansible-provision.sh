@@ -32,9 +32,10 @@ if [ -f /.dockerenv ]; then
     export ANSIBLE_SSH_CONTROL_PATH=/tmp/%%C
 fi
 
+VERBOSE="true"
 run_ansible() {
   if [[ "$VERBOSE" == "true" ]]; then
-    verbose_arg='-vvv'
+    verbose_arg='-vvvv'
   else
     verbose_arg=''
   fi
