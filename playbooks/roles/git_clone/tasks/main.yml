@@ -20,6 +20,13 @@
 # Rewrite this task using the ansible git-config module once we'll migrate to Ansible 2.x
 # https://docs.ansible.com/ansible/git_config_module.html#git-config
 #
+- name: What is being git cloned
+  debug:
+    msg: "{{ item.PROTOCOL }} {{item.DOMAIN }} {{ item.PATH }} {{ item.REPO }}"
+  when: GIT_REPOS is defined
+  with_items: GIT_REPOS
+  no_log: true
+
 - name: Set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ repo_owner }}"
