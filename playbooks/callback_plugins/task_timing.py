@@ -141,7 +141,9 @@ class JsonTimingLogger(TimingLogger):
         # format across all of Open edX tooling, so it deliberately eschews
         # standard python logging infrastructure.
         if ANSIBLE_TIMER_LOG is None:
+            LOGGER.info("ANSIBLE_TIMER_LOG not set, not logging json timing information")
             return
+        LOGGER.info("ANSIBLE_TIMER_LOG set, logging json timing information to %r", ANSIBLE_TIMER_LOG)
 
         messages = []
         for name, timestamp in results.items():
