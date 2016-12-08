@@ -100,25 +100,6 @@ def main():
         )
     )
 
-    tags_param = module.params.get('tags')
-
-    # import pprint
-    # debug_msg = "Before: tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
-    # module.log(debug_msg)
-
-    # if isinstance(tags_param, basestring):
-    #     tags_param = eval(tags_param)
-
-    # debug_msg += " - After: tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
-    # module.log(debug_msg)
-
-    tags = {}
-    if isinstance(tags_param, dict):
-        tags = tags_param
-    else:
-        module.fail_json(msg="Invalid format for tags.")
-
-
     aws_secret_key = module.params.get('aws_secret_key')
     aws_access_key = module.params.get('aws_access_key')
     region = module.params.get('region')
@@ -144,7 +125,7 @@ def main():
     instances = []
     instance_ids = []
     for res in ec2.get_all_instances(filters={'tag:' + tag: value
-                                     for tag, value in tags.iteritems()}):
+                                     for tag, value in module.params.get('tags').iteritems()}):
         for inst in res.instances:
             if inst.state == "running":
                 instances.append({k: v for k, v in inst.__dict__.iteritems()
