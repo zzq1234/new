@@ -104,6 +104,7 @@ def main():
 
     import pprint
     debug_msg = "tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
+    module.log(debug_msg)
 
     tags = {}
     if isinstance(tags_param, list):
