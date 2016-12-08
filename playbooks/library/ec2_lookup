@@ -102,9 +102,8 @@ def main():
 
     tags_param = module.params.get('tags')
 
-    print "tags_param type: {}".format(type(tags_param))
     import pprint
-    pprint.pprint(tags_param)
+    debug_msg = "tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
 
     tags = {}
     if isinstance(tags_param, list):
@@ -114,7 +113,7 @@ def main():
     elif isinstance(tags_param, dict):
         tags = tags_param
     else:
-        module.fail_json(msg="Invalid format for tags")
+        module.fail_json(msg="Invalid format for tags. {}".format(debug_msg))
 
 
     aws_secret_key = module.params.get('aws_secret_key')
