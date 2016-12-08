@@ -70,6 +70,10 @@
 # want to provide more binaries add them to user_rbash_links
 # which can be passed in as a parameter to the role.
 #
+- name: Which packages to install
+  debug:
+    var: user_debian_pkgs
+
 - name: Install debian packages user role needs
   apt:
     name: "{{ item }}"
@@ -79,31 +83,31 @@
   with_items: "{{ user_debian_pkgs }}"
   when: ansible_distribution in common_debian_variants
 
-- debug: 
+- debug:
     var: user_info
 
 - name: Create the edxadmin group
-  group: 
-    name: edxadmin 
+  group:
+    name: edxadmin
     state: present
 
 # some AMIs (such as EMR master nodes) don't read the config files out of /etc/sudoers.d by default
 - name: Ensure sudoers.d is read
   lineinfile:
-    dest: /etc/sudoers 
+    dest: /etc/sudoers
     state: present
-    regexp: '^#includedir /etc/sudoers.d' 
+    regexp: '^#includedir /etc/sudoers.d'
     line: '#includedir /etc/sudoers.d'
     validate: 'visudo -cf %s'
 
 # give full sudo admin access to the edxadmin group
 - name: Grant full sudo access to the edxadmin group
-  copy: 
+  copy:
     content: "%edxadmin ALL=(ALL) NOPASSWD:ALL"
-    dest: /etc/sudoers.d/edxadmin 
-    owner: root 
+    dest: /etc/sudoers.d/edxadmin
+    owner: root
     group: root
-    mode: 0440 
+    mode: 0440
     validate: 'visudo -cf %s'
 
 - name: Create the users
@@ -144,9 +148,9 @@
   with_items: "{{ user_info }}"
 
 - name: Create bashrc file for normal users
-  template: 
+  template:
     src: default.bashrc.j2
-    dest: "/home/{{ item.name }}/.bashrc" 
+    dest: "/home/{{ item.name }}/.bashrc"
     mode: "0640"
     owner: "{{ item.name }}"
   when: not (item.type is defined and item.type == 'restricted') and item.get('state', 'present') == 'present'
@@ -155,7 +159,7 @@
 - name: Create .profile for all users
   template:
     src: default.profile.j2
-    dest: "/home/{{ item.name }}/.profile" 
+    dest: "/home/{{ item.name }}/.profile"
     mode: "0640"
     owner: "{{ item.name }}"
   when: item.get('state', 'present') == 'present'
@@ -174,7 +178,7 @@
 - name: Create bashrc file for restricted users
   template:
     src: restricted.bashrc.j2
-    dest: "/home/{{ item.name }}/.bashrc" 
+    dest: "/home/{{ item.name }}/.bashrc"
     mode: "0640"
     owner: "{{ item.name }}"
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
@@ -183,10 +187,10 @@
 - name: Create sudoers file from template
   template:
     dest: /etc/sudoers.d/99-restricted
-    src: restricted.sudoers.conf.j2 
+    src: restricted.sudoers.conf.j2
     owner: root
-    group: root 
-    mode: 0440 
+    group: root
+    mode: 0440
     validate: 'visudo -cf %s'
 
   # Prevent restricted user from updating their PATH and
@@ -203,10 +207,10 @@
 
 - name: Create ~/bin directory
   file:
-    path: "/home/{{ item.name }}/bin" 
-    state: directory 
+    path: "/home/{{ item.name }}/bin"
+    state: directory
     mode: "0750"
-    owner: root 
+    owner: root
     group: "{{ item.name }}"
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
