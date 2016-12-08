@@ -101,6 +101,11 @@ def main():
     )
 
     tags_param = module.params.get('tags')
+
+    print "tags_param type: {}".format(type(tags_param))
+    import pprint
+    pprint.pprint(tags_param)
+
     tags = {}
     if isinstance(tags_param, list):
       for item in module.params.get('tags'):
