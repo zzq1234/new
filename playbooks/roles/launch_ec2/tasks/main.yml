@@ -57,7 +57,7 @@
 - name: Debug EC2 instance attributes
   debug:
     var: item
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Add DNS name
   local_action:
@@ -69,7 +69,7 @@
     ttl: 300
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Add DNS names for services
   local_action:
