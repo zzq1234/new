@@ -103,14 +103,19 @@ def main():
     tags_param = module.params.get('tags')
 
     import pprint
-    debug_msg = "tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
+    debug_msg = "Before: tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
+    module.log(debug_msg)
+
+    if isinstance(tags_param, basestring):
+        tags_param = eval(tags_param)
+
+    debug_msg += " - After: tags_param type: {} - value: {}".format(type(tags_param), pprint.pformat(tags_param))
     module.log(debug_msg)
 
     tags = {}
     if isinstance(tags_param, list):
-      for item in module.params.get('tags'):
-          for k,v in item.iteritems():
-              tags[k] = v
+        for item in tags_param:
+            tags.update(item)
     elif isinstance(tags_param, dict):
         tags = tags_param
     else:
