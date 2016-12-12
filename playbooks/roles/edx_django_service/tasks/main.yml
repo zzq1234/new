@@ -1,0 +1,278 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_django_service
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: set devstack fact
+  set_fact:
+    edx_django_service_is_devstack: true
+  tags:
+  - devstack
+  - devstack:install
+
+- name: add gunicorn configuration file
+  template:
+    src: "edx/app/app/app_gunicorn.py.j2"
+    dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_gunicorn.py"
+  become_user: "{{ edx_django_service_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: add deadsnakes repository
+  apt_repository:
+    repo: "ppa:fkrull/deadsnakes"
+  when: edx_django_service_use_python35
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install python3.5
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - python3.5
+    - python3.5-dev
+  when: edx_django_service_use_python35
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3.5
+  command: "virtualenv --python=python3.5 {{ edx_django_service_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_django_service_user }}"
+  when: edx_django_service_use_python35
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with pyton2.7
+  command: "virtualenv --python=python2.7 {{ edx_django_service_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_use_python35
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    version: "1.1.0"
+    # NOTE (CCB): Using the "virtualenv" option here doesn't seem to work.
+    executable: "{{ edx_django_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_django_service_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ edx_django_service_nodeenv_dir }} --node={{ edx_django_service_node_version }} --prebuilt"
+  args:
+    creates: "{{ edx_django_service_nodeenv_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install production requirements
+  command: make production-requirements
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install development requirements
+  command: make requirements
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - devstack
+    - devstack:install-app-requirements
+
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_migration_environment | combine(edx_django_service_environment) }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/app/app.sh.j2"
+    dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/app.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ edx_django_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/app/devstack.sh.j2"
+    dest: "{{ edx_django_service_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
+
+- name: setup the app env file
+  template:
+    src: "edx/app/app/app_env.j2"
+    dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_env"
+    owner: "{{ edx_django_service_user }}"
+    group: "{{ edx_django_service_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ edx_django_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ edx_django_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ edx_django_service_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_django_service_name }}"
+    state: link
+  with_items:
+    - python
+    - pip
+    - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ edx_django_service_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_django_service_name }}"
+    state: link
+  with_items:
+    - manage.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: compile static assets
+  command: make static
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  # NOTE: We enable Django Debug Toolbar so that devstack containers have the requisite assets.
+  environment: "{{ edx_django_service_environment | combine({ 'ENABLE_DJANGO_TOOLBAR': True }) }}"
+  when: edx_django_service_has_static_assets
+  tags:
+    - assets
+    - assets:gather
+
+- name: Allow the web group to write staticfiles for devstack
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ edx_django_service_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0775"
+    recurse: true
+  with_items:
+    - "{{ edx_django_service_media_root }}"
+    - "{{ edx_django_service_static_root }}"
+  tags:
+    - devstack
+    - devstack:install
+
+- name: restart the application
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ edx_django_service_name }}"
+  when: not disable_edx_services
+  become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
+
+- name: Copying nginx configs for the service
+  template:
+    src: "edx/app/nginx/sites-available/app.j2"
+    dest: "{{ nginx_sites_available_dir }}/{{ edx_django_service_name }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Creating nginx config links for the service
+  file:
+    src: "{{ nginx_sites_available_dir }}/{{ edx_django_service_name }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ edx_django_service_name }}"
+    state: link
+    owner: root
+    group: root
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts

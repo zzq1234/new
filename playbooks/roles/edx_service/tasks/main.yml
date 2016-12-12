@@ -59,7 +59,8 @@
     - ""
     - "venvs"
     - "data"
-    - "staticfiles"
+# TODO Determine if we want to keep static files here or in /edx/var/{service-name}/staticfiles
+#    - "staticfiles"
   tags:
     - install
     - install:base
@@ -73,22 +74,24 @@
     mode: "0755"
   with_items:
     - "/edx/var"
-    - "/edx/etc"
+# TODO Determine if any services actually use this directory. The IDAs do not.
+#    - "/edx/etc"
   tags:
     - install
     - install:base
 
-- name: Create edx_service log dir
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: "syslog"
-    group: "syslog"
-  with_items:
-    - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
-  tags:
-    - install
-    - install:base
+# TODO Determine if any services actually use this directory. The IDAs do not.
+#- name: Create edx_service log dir
+#  file:
+#    path: "{{ item }}"
+#    state: directory
+#    owner: "syslog"
+#    group: "syslog"
+#  with_items:
+#    - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
+#  tags:
+#    - install
+#    - install:base
 
 - name: Write out app config file
   template:
