@@ -10,20 +10,28 @@
 FROM edxops/xenial-common:latest
 MAINTAINER edxops
 
-ENV DISCOVERY_VERSION=master
-ENV REPO_OWNER=edx
-
 ADD . /edx/app/edx_ansible/edx_ansible
-
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
+#RUN apt-get update
+
 COPY docker/build/discovery/ansible_overrides.yml /
+
 RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml \
     -c local -i '127.0.0.1,' \
-    -t 'install,assets,devstack:install' \
-    --extra-vars="@/ansible_overrides.yml" \
-    --extra-vars="DISCOVERY_VERSION=$DISCOVERY_VERSION" \
-    --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
+    -t 'devstack:install,install:base,install:configuration,install:system-requirements' \
+    --extra-vars="@/ansible_overrides.yml"
 
-USER root 
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml \
+    -c local -i '127.0.0.1,' \
+    -t 'install:code' \
+    --extra-vars="@/ansible_overrides.yml"
+
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml \
+    -c local -i '127.0.0.1,' \
+    -t 'assets,devstack:install,devstack:install-app-requirements,install:app-configuration,install:app-requirements,install:vhosts' \
+    --extra-vars="@/ansible_overrides.yml"
+
+USER root
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+EXPOSE 18381
