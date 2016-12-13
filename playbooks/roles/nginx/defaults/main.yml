@@ -81,7 +81,6 @@ NGINX_EDXAPP_ERROR_PAGES:
   "504": "{{ nginx_default_error_page }}"
 
 CMS_HOSTNAME: '~^((stage|prod)-)?studio.*'
-PROGRAMS_HOSTNAME: '~^((stage|prod)-)?programs.*'
 
 
 nginx_template_dir: "edx/app/nginx/sites-available"
@@ -103,8 +102,6 @@ nginx_insights_gunicorn_hosts:
 nginx_gitreload_gunicorn_hosts:
   - 127.0.0.1
 nginx_edx_notes_api_gunicorn_hosts:
-  - 127.0.0.1
-nginx_programs_gunicorn_hosts:
   - 127.0.0.1
 
 nginx_cfg:
@@ -129,7 +126,6 @@ EDXAPP_CMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 EDXAPP_LMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 KIBANA_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
-PROGRAMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 XQUEUE_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 XSERVER_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 
@@ -140,7 +136,6 @@ NGINX_CREATE_HTPASSWD_FILE: >
     EDXAPP_LMS_ENABLE_BASIC_AUTH|bool or
     EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH|bool or
     KIBANA_ENABLE_BASIC_AUTH|bool or
-    PROGRAMS_ENABLE_BASIC_AUTH|bool or
     XQUEUE_ENABLE_BASIC_AUTH|bool or
     XSERVER_ENABLE_BASIC_AUTH|bool
   }}

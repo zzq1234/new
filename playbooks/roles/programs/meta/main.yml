@@ -19,15 +19,28 @@
 #   my_role_var1: "bar"
 # }
 dependencies:
-  - common
-  - supervisor
-  - role: edx_service
-    edx_service_name: "{{ programs_service_name }}"
-    edx_service_config: "{{ PROGRAMS_SERVICE_CONFIG }}"
-    edx_service_repos: "{{ PROGRAMS_REPOS }}"
-    edx_service_user: "{{ programs_user }}"
-    edx_service_home: "{{ programs_home }}"
-    edx_service_packages:
-      debian: "{{ programs_debian_pkgs }}"
-      redhat: "{{ programs_redhat_pkgs }}"
-
+  - role: edx_django_service
+    edx_django_service_version: "{{ PROGRAMS_VERSION }}"
+    edx_django_service_name: "{{ programs_service_name }}"
+    edx_django_service_config_overrides: "{{ PROGRAMS_SERVICE_CONFIG }}"
+    edx_django_service_debian_pkgs_extra: "{{ programs_debian_pkgs }}"
+    edx_django_service_gunicorn_port: "{{ programs_gunicorn_port }}"
+    edx_django_service_django_settings_module: "{{ PROGRAMS_DJANGO_SETTINGS_MODULE }}"
+    edx_django_service_environment_extra: "{{ programs_environment }}"
+    edx_django_service_gunicorn_extra: "{{ PROGRAMS_GUNICORN_EXTRA }}"
+    edx_django_service_nginx_port: "{{ PROGRAMS_NGINX_PORT }}"
+    edx_django_service_ssl_nginx_port: "{{ PROGRAMS_SSL_NGINX_PORT }}"
+    edx_django_service_use_python35: false
+    edx_django_service_language_code: '{{ PROGRAMS_LANGUAGE_CODE }}'
+    edx_django_service_secret_key: '{{ PROGRAMS_SECRET_KEY }}'
+#    edx_django_service_staticfiles_storage: '{{ PROGRAMS_STATICFILES_STORAGE }}'
+    edx_django_service_media_storage_backend: '{{ PROGRAMS_MEDIA_STORAGE_BACKEND }}'
+    edx_django_service_memcache: '{{ PROGRAMS_MEMCACHE }}'
+    edx_django_service_default_db_host: '{{ PROGRAMS_DATABASE_HOST }}'
+    edx_django_service_default_db_name: '{{ PROGRAMS_DEFAULT_DB_NAME }}'
+    edx_django_service_default_db_atomic_requests: false
+    edx_django_service_db_user: '{{ PROGRAMS_DATABASE_USER }}'
+    edx_django_service_db_password: '{{ PROGRAMS_DATABASE_PASSWORD }}'
+    edx_django_service_social_auth_edx_oidc_key: '{{ PROGRAMS_SOCIAL_AUTH_EDX_OIDC_KEY }}'
+    edx_django_service_social_auth_edx_oidc_secret: '{{ PROGRAMS_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+    edx_django_service_social_auth_redirect_is_https: '{{ PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'

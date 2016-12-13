@@ -1,6 +1,6 @@
 - name: Deploy Programs
   hosts: all
-  sudo: True
+  become: True
   gather_facts: True
   roles:
     - nginx
