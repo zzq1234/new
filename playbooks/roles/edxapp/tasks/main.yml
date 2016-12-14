@@ -36,6 +36,18 @@
     - install
     - install:base
 
+# TODO Integrate edxapp with edx_django_service
+- name: write devstack script
+  template:
+    src: "devstack.sh.j2"
+    dest: "{{ edx_django_service_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
+
 # This is a symlink that has to exist because
 # we currently can't override the DATA_DIR var
 # in edx-platform. TODO: This can be removed once
