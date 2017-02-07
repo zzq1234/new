@@ -10,7 +10,7 @@
 
 # TODO Revert this once we are done testing. Having this greatly cuts down on
 # build time since we don't have to checkout the repo or install requirements from scratch.
-FROM clintonb/edxapp:devstack
+FROM edxops/edxapp:devstack
 #FROM edxops/precise-common:latest
 MAINTAINER edxops
 
