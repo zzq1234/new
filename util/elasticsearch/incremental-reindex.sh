@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #
-# Thin wrapper around rake search:catchup.
+# Thin wrapper around rake search:catchup for cs_comment_service (forums).
 #
 # Reindexes documents created since WINDOW ago.
 # If SLEEP_TIME is set to any number greater than 0, loops indefinitely. Since re-
@@ -19,14 +19,18 @@ set -euo pipefail
 #   BATCH_SIZE  Number of documents to index per batch
 #
 # Example:
-#   ./incremental-reindex.sh content -1hour
+#   ./incremental-reindex.sh content 30
 #
 
 INDEX="$1"
-WINDOW="${2:-1}"
+WINDOW="${2:-5}"
 SLEEP_TIME="${3:-60}"
 BATCH_SIZE="${3:-500}"
 
+if [ "$SLEEP_TIME" -ge "$((WINDOW * 60))" ]; then
+  echo 'ERROR: SLEEP_TIME must not be longer than WINDOW, or else documents may be missed.'
+  exit 1
+fi
 
 while : ; do
   echo "reindexing documents newer than $WINDOW minutes..."
