@@ -15,6 +15,7 @@ Compare two Elasticsearch indices
 """
 
 SCAN_ITER_STEP = 50
+SCAN_MATCH_THRESHOLD = .9
 
 RANDOM_CHECK_SIZE = 10
 RANDOM_CHECKS_BEFORE_RESET = 100
@@ -34,22 +35,18 @@ def parse_args():
         help='Hostname of new ES host, e.g. https://localhost:9200 content'
     )
     parser.add_argument(
-        '-mt', '--match-threshold', dest='match_threshold', type=float, default=.9,
-        help='Percentage of matching docs between old and new indices req. for an OK (default: .9)'
+        '-s', '--scan', dest='scan', action="store_true",
+        help='Run a full scan comparison instead of a random selection.'
     )
     parser.add_argument(
-        '-cp', '--check-percentage', dest='check_percentage', type=float, default=.1,
+        '-c', '--check-percentage', dest='check_percentage', type=float, default=.1,
         help='Percentage of randomly found docs to check between old and new indices (default: .1)'
-    )
-    parser.add_argument(
-        '-m', '--max-scan', dest='max_scan', type=int, default=100000,
-        help='Number of documents to scan through in simple scan. (default: 100000)'
     )
 
     return parser.parse_args()
 
 
-def grouper(iterable, n, fillvalue=None):
+def grouper(iterable, n):
     """
     Collect data into fixed-length chunks or blocks
     from the import itertools recipe list: https://docs.python.org/3/library/itertools.html#recipes
@@ -59,7 +56,7 @@ def grouper(iterable, n, fillvalue=None):
     return itertools.izip_longest(*args)
 
 
-def find_matching_ids(es, index, ids):
+def find_matching_ids(es, index, ids, bodies):
     """
     Finds out how many of the ids in the given ids are in the given index in the given
     ES deployment.
@@ -68,19 +65,115 @@ def find_matching_ids(es, index, ids):
         es - Elasticsearch instance corresponding to the cluster we want to check
         index - name of the index that we want to check
         ids - a list of dictionaries of the form {'_id': <id>} of the ids we want to check.
+        bodies - a dictionary of the form {'<id>': '<text body>'}
     """
     body = {'docs': ids}
 
     search_result = es.mget(index=index, body=body)
     matching = 0
     for elt in search_result['docs']:
-        # in ES 0.9.x
-        if 'exists' in elt:
-            matching += 1 if elt['exists'] else 0
-        # in ES 1.x
-        elif 'found' in elt:
-            matching += 1 if elt['found'] else 0
+        # Checks whether or not there was a document matching the id at all.
+        # 'exists' is 0.9.x
+        # 'found' is 1.5.x
+        if elt.get('exists', False) or elt.get('found', False):
+            if elt['_source']['body'] == bodies[elt['_id']]:
+                matching += 1
+            else:
+                print 'Document with id {id} does not match body: {body}'.format(
+                    id=elt['_id'], body=bodies[elt['_id']]
+                )
+                print 'Found body: {body}'.format(
+                    body=elt['_source']['body']
+                )
+        else:
+            print 'Document missing with id: {id}, body: {body}'.format(
+                id=elt['_id'], body=bodies[elt['_id']]
+            )
     return matching
+
+
+def scan_documents(old_es, new_es, old_index, new_index):
+    """
+    Scan for matching documents
+
+     In order to match the two indeces without having to deal with ordering issues,
+     we pull a set of dcouments from the old ES index, and then try to find matching
+     documents with the same _id in the new ES index. This process is batched to avoid
+     making individual network calls to the new ES index.
+    """
+
+    matching = 0
+    total = 0
+    old_iter = scan(old_es, index=old_index)
+    for old_elts in grouper(old_iter, SCAN_ITER_STEP):
+
+        old_elt_ids = []
+        old_elt_bodies = {}
+        for elt in old_elts:
+            if elt is not None:
+                old_elt_ids.append({'_id': elt['_id']})
+                old_elt_bodies[elt['_id']] = elt['_source']['body']
+
+        matching += find_matching_ids(new_es, new_index, old_elt_ids, old_elt_bodies)
+        total += len(old_elt_ids)
+        if total % 100 == 0:
+            print 'processed {} items'.format(total)
+
+    ratio = float(matching)/total
+    print "{}: scanned documents matching ({} out of {}, {}%)".format(
+        'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, int(ratio * 100)
+    )
+
+
+def random_checks(old_es, new_es, old_index, new_index, total_document_count, check_percentage):
+    """
+    Check random documents
+    This is meant to be a random search trying to spot checks on whether
+    or not data was moved over correctly. Runs a lot faster than the full scan.
+    """
+
+    total = 0
+    matching = 0
+    current_offset = -1
+    while float(total) / total_document_count < check_percentage:
+        # We only want to page a certain amount before regenerating a new set of
+        # random documents.
+        if current_offset > RANDOM_CHECKS_BEFORE_RESET or current_offset < 0:
+            seed = random.randint(0, 1000)
+            current_offset = 0
+            body = {
+                'size': RANDOM_CHECK_SIZE,
+                'from': current_offset,
+                'query': {
+                    'function_score': {
+                        'functions': [{
+                            'random_score': {
+                                'seed': seed
+                            }
+                        }]
+                    }
+                }
+            }
+        results = old_es.search(
+            index=old_index, body=body
+        )
+        ids = []
+        bodies = {}
+        for elt in results['hits']['hits']:
+            ids.append({'_id': elt['_id']})
+            bodies[elt['_id']] = elt['_source']['body']
+        matching += find_matching_ids(new_es, new_index, ids, bodies)
+        num_elts = len(ids)
+        total += num_elts
+        current_offset += num_elts
+
+        if total % 100 == 0:
+            print 'processed {} items'.format(total)
+
+    ratio = float(matching) / total
+    print "{}: random documents matching ({} out of {}, {}%)".format(
+        'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, int(ratio * 100)
+    )
 
 
 def main():
@@ -111,76 +204,12 @@ def main():
         'OK' if old_count == new_count else 'FAILURE', old_size, new_size
     )
 
-    matching = 0
-    total = 0
 
-    # Scan for matching documents
+    if args.scan:
+        scan_documents(old_es, new_es, old_index, new_index)
+    else:
+        random_checks(old_es, new_es, old_index, new_index, new_count, args.check_percentage)
 
-    # In order to match the two indeces without having to deal with ordering issues,
-    # we pull a set of dcouments from the old ES index, and then try to find matching
-    # documents with the same _id in the new ES index. This process is batched to avoid
-    # making individual network calls to the new ES index.
-
-    old_iter = scan(old_es, index=old_index)
-    for old_elts in grouper(old_iter, SCAN_ITER_STEP):
-
-        old_elt_ids = [{'_id': elt['_id']} for elt in old_elts if elt is not None]
-        matching += find_matching_ids(new_es, new_index, old_elt_ids)
-        total += len(old_elt_ids)
-        if total % 100 == 0:
-            print 'processed {} items'.format(total)
-
-        if total > args.max_scan:
-            print 'Completed max number of scanned comparisons.'
-            break
-
-    ratio = float(matching)/total
-    print "{}: scanned documents matching ({} out of {}, {}%)".format(
-        'OK' if ratio > args.match_threshold else 'FAILURE', matching, total, int(ratio * 100)
-    )
-
-    # Check random documents
-    # Since the previous scan only checks a subset of documents, this is meant to be a random search
-    # trying to spot checks on whether or not data was moved over correctly.
-
-    current_checked = 0
-    matching = 0
-    current_offset = -1
-    while float(current_checked) / new_count < args.check_percentage:
-        # We only want to page a certain amount before regenerating a new set of
-        # random documents.
-        if current_offset > RANDOM_CHECKS_BEFORE_RESET or current_offset < 0:
-            seed = random.randint(0, 1000)
-            current_offset = 0
-            body = {
-                'size': RANDOM_CHECK_SIZE,
-                'from': current_offset,
-                'query': {
-                    'function_score': {
-                        'functions': [{
-                            'random_score': {
-                                'seed': seed
-                            }
-                        }]
-                    }
-                }
-            }
-        results = old_es.search(
-            index=old_index, body=body
-        )
-        ids = [{'_id': elt['_id']} for elt in results['hits']['hits']]
-        matching += find_matching_ids(new_es, new_index, ids)
-        num_elts = len(ids)
-        current_checked += num_elts
-        current_offset += num_elts
-
-        if current_checked % 100 == 0:
-            print 'processed {} items'.format(current_checked)
-
-    ratio = float(matching) / current_checked
-    print "{}: random documents matching ({} out of {}, {}%)".format(
-        'OK' if ratio > args.match_threshold else 'FAILURE', matching, current_checked, int(ratio * 100)
-    )
 
 
 """
