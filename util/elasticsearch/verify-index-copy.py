@@ -61,6 +61,9 @@ def find_matching_ids(es, index, ids, bodies):
     Finds out how many of the ids in the given ids are in the given index in the given
     ES deployment.
 
+    We also compare the bodies of the documents to ensure that those still match.
+    No other metadata is checked.
+
     Args:
         es - Elasticsearch instance corresponding to the cluster we want to check
         index - name of the index that we want to check
@@ -79,14 +82,14 @@ def find_matching_ids(es, index, ids, bodies):
             if elt['_source']['body'] == bodies[elt['_id']]:
                 matching += 1
             else:
-                print 'Document with id {id} does not match body: {body}'.format(
+                print 'ERROR: Document with id {id} does not match body: {body}'.format(
                     id=elt['_id'], body=bodies[elt['_id']]
                 )
-                print 'Found body: {body}'.format(
+                print 'ERROR: Found body: {body}'.format(
                     body=elt['_source']['body']
                 )
         else:
-            print 'Document missing with id: {id}, body: {body}'.format(
+            print 'ERROR: Document missing with id: {id}, body: {body}'.format(
                 id=elt['_id'], body=bodies[elt['_id']]
             )
     return matching
@@ -96,8 +99,8 @@ def scan_documents(old_es, new_es, old_index, new_index):
     """
     Scan for matching documents
 
-     In order to match the two indeces without having to deal with ordering issues,
-     we pull a set of dcouments from the old ES index, and then try to find matching
+     In order to match the two indices without having to deal with ordering issues,
+     we pull a set of documents from the old ES index, and then try to find matching
      documents with the same _id in the new ES index. This process is batched to avoid
      making individual network calls to the new ES index.
     """
@@ -176,6 +179,41 @@ def random_checks(old_es, new_es, old_index, new_index, total_document_count, ch
     )
 
 
+def check_mappings(old_mapping, new_mapping):
+    """
+    Verify that the two mappings match in terms of keys and properties
+    """
+    mappings_match = True
+    # Check mapping types
+    for old_key, new_key in zip(old_mapping.keys(), new_mapping.keys()):
+        if old_key != new_key:
+            print 'ERROR: mappings keys do not match ({} = {})'.format(
+                old_key, new_key
+            )
+            mappings_match = False
+        else:
+            # Check properties for this key
+            for old_prop in old_mapping[old_key]['properties']:
+                # Note: if the property does not have a 'type' one level down, we assume that the
+                # types are the same.
+                old_type = old_mapping[old_key]['properties'][old_prop].get('type', None)
+                # Check to see if the types are the same for this property.
+                if old_prop in new_mapping[old_key]['properties']:
+                    new_type = new_mapping[old_key]['properties'][old_prop].get('type', None)
+                    if new_type != old_type:
+                        print 'ERROR: mappings property type {} for mapping {} does not match ({} = {})'.format(
+                            old_prop, old_key, old_type, new_type
+                        )
+                        mappings_match = False
+                else:
+                    print 'ERROR: mapping property {} for mapping {} missing in new index.'.format(
+                        old_prop, old_key
+                    )
+                    mappings_match = False
+
+    return mappings_match
+
+
 def main():
     """
     Run the verification.
@@ -187,8 +225,8 @@ def main():
     old_index = args.old[1]
     new_index = args.new[1]
 
-    old_stats = old_es.indices.stats(index=args.old[1])['indices'].values()[0]['total']
-    new_stats = new_es.indices.stats(index=args.new[1])['indices'].values()[0]['total']
+    old_stats = old_es.indices.stats(index=old_index)['indices'].values()[0]['total']
+    new_stats = new_es.indices.stats(index=new_index)['indices'].values()[0]['total']
 
     #compare document count
     old_count = old_stats['docs']['count']
@@ -204,6 +242,15 @@ def main():
         'OK' if old_count == new_count else 'FAILURE', old_size, new_size
     )
 
+    # Verify that the mappings match between old and new
+    old_mapping = old_es.indices.get_mapping(index=old_index).values()[0]
+    # for 1.5.x, there is an extra 'mappings' field that holds the mappings.
+    new_mapping = new_es.indices.get_mapping(index=new_index).values()[0]['mappings']
+
+    if check_mappings(old_mapping, new_mapping):
+        print "OK: Index mappings match"
+    else:
+        print "FAILURE: Index mappings do not match"
 
     if args.scan:
         scan_documents(old_es, new_es, old_index, new_index)
