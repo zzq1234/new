@@ -3,8 +3,10 @@ Verifies that an index was correctly copied from one ES host to another.
 """
 
 import itertools
+import pprint
 import random
 
+from deepdiff import DeepDiff
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import scan
 from argparse import ArgumentParser
@@ -182,36 +184,17 @@ def random_checks(old_es, new_es, old_index, new_index, total_document_count, ch
 def check_mappings(old_mapping, new_mapping):
     """
     Verify that the two mappings match in terms of keys and properties
+    Args:
+        - old_mapping (dict) - the mappings from the older ES
+        - new_mapping(dict) - the mappings from the newer ES
     """
-    mappings_match = True
-    # Check mapping types
-    for old_key, new_key in zip(old_mapping.keys(), new_mapping.keys()):
-        if old_key != new_key:
-            print 'ERROR: mappings keys do not match ({} = {})'.format(
-                old_key, new_key
-            )
-            mappings_match = False
-        else:
-            # Check properties for this key
-            for old_prop in old_mapping[old_key]['properties']:
-                # Note: if the property does not have a 'type' one level down, we assume that the
-                # types are the same.
-                old_type = old_mapping[old_key]['properties'][old_prop].get('type', None)
-                # Check to see if the types are the same for this property.
-                if old_prop in new_mapping[old_key]['properties']:
-                    new_type = new_mapping[old_key]['properties'][old_prop].get('type', None)
-                    if new_type != old_type:
-                        print 'ERROR: mappings property type {} for mapping {} does not match ({} = {})'.format(
-                            old_prop, old_key, old_type, new_type
-                        )
-                        mappings_match = False
-                else:
-                    print 'ERROR: mapping property {} for mapping {} missing in new index.'.format(
-                        old_prop, old_key
-                    )
-                    mappings_match = False
 
-    return mappings_match
+    deep_diff = DeepDiff(old_mapping, new_mapping)
+    if deep_diff != {}:
+        print "FAILURE: Index mappings do not match"
+        pprint.pprint(deep_diff)
+    else:
+        print "OK: Index mappings match"
 
 
 def main():
@@ -247,10 +230,7 @@ def main():
     # for 1.5.x, there is an extra 'mappings' field that holds the mappings.
     new_mapping = new_es.indices.get_mapping(index=new_index).values()[0]['mappings']
 
-    if check_mappings(old_mapping, new_mapping):
-        print "OK: Index mappings match"
-    else:
-        print "FAILURE: Index mappings do not match"
+    check_mappings(old_mapping, new_mapping)
 
     if args.scan:
         scan_documents(old_es, new_es, old_index, new_index)
