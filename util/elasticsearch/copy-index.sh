@@ -17,7 +17,7 @@ set -euo pipefail
 #   copy-index.sh SOURCE_SERVER SOURCE_INDEX TARGET_SERVER TARGET_INDEX [WORKERS]
 #
 # Example:
-#   ./copy-index.sh http://localhost:9200 source_index http://localhost:9200 target_index
+#   ./copy-index.sh http://localhost source_index http://localhost target_index
 #
 
 SOURCE_SERVER=$1
@@ -40,10 +40,8 @@ input {
  
 output {
   elasticsearch {
-    host => "$TARGET_SERVER"
+    hosts => "$TARGET_SERVER"
     index => "$TARGET_INDEX"    #same as above
-    protocol => "http"
-    port => 80
     manage_template => false
     document_type => "%{[@metadata][_type]}"
     document_id => "%{[@metadata][_id]}"

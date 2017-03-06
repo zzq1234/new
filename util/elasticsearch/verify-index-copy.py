@@ -208,8 +208,8 @@ def main():
     old_index = args.old[1]
     new_index = args.new[1]
 
-    old_stats = old_es.indices.stats(index=old_index)['indices'].values()[0]['total']
-    new_stats = new_es.indices.stats(index=new_index)['indices'].values()[0]['total']
+    old_stats = old_es.indices.stats(index=old_index)['indices'].values()[0]['primaries']
+    new_stats = new_es.indices.stats(index=new_index)['indices'].values()[0]['primaries']
 
     #compare document count
     old_count = old_stats['docs']['count']
