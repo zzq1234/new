@@ -74,6 +74,16 @@
     - manage
     - manage:update
 
+- name: ensure forum is started
+  supervisorctl:
+    name: forum
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
+  when: not disable_edx_services
+  tags:
+    - manage
+
 - name: initialize elasticsearch
   command: "{{ forum_code_dir }}/bin/rake search:initialize"
   args:
@@ -84,16 +94,6 @@
   tags:
     - migrate
     - migrate:db
-
-- name: ensure forum is started
-  supervisorctl:
-    name: forum
-    supervisorctl_path: "{{ supervisor_ctl }}"
-    config: "{{ supervisor_cfg }}"
-    state: started
-  when: not disable_edx_services
-  tags:
-    - manage
 
 - include: test.yml
   tags:
