@@ -84,6 +84,18 @@
   tags:
     - manage
 
+- name: fake task
+  command: "ls"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
+
 - name: initialize elasticsearch
   command: "{{ forum_code_dir }}/bin/rake search:initialize"
   args:
