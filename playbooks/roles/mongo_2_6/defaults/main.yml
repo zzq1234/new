@@ -23,7 +23,7 @@ MONGO_USERS:
   - user: cs_comments_service
     password: password
     database: cs_comments_service
-    roles: readWrite
+    roles: admin
   - user: edxapp
     password: password
     database: edxapp
@@ -65,4 +65,3 @@ mongo_s3_logfile: "{{ COMMON_LOG_DIR }}/mongo/s3-mongo-backup.log"
 MONGO_S3_S3CMD_CONFIG: "{{ COMMON_DATA_DIR }}/mongo-s3-backup.s3cfg"
 MONGO_S3_BACKUP_AWS_ACCESS_KEY: !!null
 MONGO_S3_BACKUP_AWS_SECRET_KEY: !!null
-
