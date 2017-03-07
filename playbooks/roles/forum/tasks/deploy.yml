@@ -60,13 +60,17 @@
     - install
     - install:app-requirements
 
+- debug:
+    msg: "User {{ forum_user }} has env vars {{ forum_environment }}"
+
 - name: initialize elasticsearch
-  command: "/usr/bin/env"
+  command: "{{ forum_code_dir }}/bin/rake search:initialize"
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
   environment: "{{ forum_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
   tags:
     - migrate
     - migrate:db
