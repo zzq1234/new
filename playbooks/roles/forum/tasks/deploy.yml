@@ -38,6 +38,9 @@
     - install
     - install:configuration
 
+- debug:
+    msg: "forum_version is: {{ forum_version }}"
+
 - name: git checkout forum repo into {{ forum_code_dir }}
   git:
     dest: "{{ forum_code_dir }}"
