@@ -61,7 +61,7 @@
     - install:app-requirements
 
 - name: initialize elasticsearch
-  command: "/usr/bin/env && {{ forum_code_dir }}/bin/rake search:initialize"
+  command: "/usr/bin/env"
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
