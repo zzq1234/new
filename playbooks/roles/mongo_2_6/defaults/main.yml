@@ -23,7 +23,7 @@ MONGO_USERS:
   - user: cs_comments_service
     password: password
     database: cs_comments_service
-    roles: admin
+    roles: readWrite
   - user: edxapp
     password: password
     database: edxapp
