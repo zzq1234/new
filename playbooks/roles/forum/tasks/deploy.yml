@@ -42,7 +42,7 @@
   git:
     dest: "{{ forum_code_dir }}"
     repo: "{{ forum_source_repo }}"
-    version: "{{ forum_version }}"
+    version: "robrap/change-dev-db"
     accept_hostkey: yes
   become_user: "{{ forum_user }}"
   register: forum_checkout
