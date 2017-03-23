@@ -10,7 +10,7 @@
 #
 #
 # Tasks for role docker
-# 
+#
 # Overview:
 #
 # This is a special role for providing common, docker specific tasks.
@@ -18,4 +18,22 @@
 # Dependencies:
 #
 # Inherits from the container role via meta/main.yml
-# 
+#
+- name: install python3
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install nodenv
+  command: "{{ item }} install nodeenv"
+  with_items:
+    - pip
+    - pip3
+  tags:
+    - install
+    - install:system-requirements
