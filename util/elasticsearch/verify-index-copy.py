@@ -125,8 +125,8 @@ def scan_documents(old_es, new_es, old_index, new_index):
             print 'processed {} items'.format(total)
 
     ratio = float(matching)/total
-    print "{}: scanned documents matching ({} out of {}, {}%)".format(
-        'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, int(ratio * 100)
+    print "{}: scanned documents matching ({} out of {}, {:.6}%)".format(
+        'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, ratio * 100
     )
 
 
