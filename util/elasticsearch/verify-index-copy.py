@@ -111,7 +111,8 @@ def docs_match(old_doc, new_doc):
         "root['found']",
         "root['_index']",
         "root['updated_at']",
-        "root['version']",
+        "root['_version']",
+        "root['_score']",
     ]
     diff_types = ['dictionary_item_added', 'dictionary_item_removed', 'values_changed']
     diff_doc = DeepDiff(old_doc, new_doc)
