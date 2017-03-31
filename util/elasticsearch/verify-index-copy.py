@@ -296,10 +296,15 @@ def main():
         'OK' if old_count == new_count else 'FAILURE', old_size, new_size
     )
 
+    def get_mappings(es, index):
+        # for 1.5.x, there is an extra 'mappings' field that holds the mappings.
+        mappings = es.indices.get_mapping(index=index).values()[0]
+        new_style = mappings.get('mappings', None)
+        return new_style if new_style is not None else mappings
+
     # Verify that the mappings match between old and new
-    old_mapping = old_es.indices.get_mapping(index=old_index).values()[0]
-    # for 1.5.x, there is an extra 'mappings' field that holds the mappings.
-    new_mapping = new_es.indices.get_mapping(index=new_index).values()[0]['mappings']
+    old_mapping = get_mappings(old_es, old_index)
+    new_mapping = get_mappings(new_es, new_index)
 
     check_mappings(old_mapping, new_mapping)
 
