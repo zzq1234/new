@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Verifies that an index was correctly copied from one ES host to another.
 """
@@ -5,7 +6,6 @@ Verifies that an index was correctly copied from one ES host to another.
 import itertools
 import pprint
 import random
-import json
 
 from deepdiff import DeepDiff
 from elasticsearch import Elasticsearch
@@ -160,7 +160,7 @@ def find_matching_ids(es, index, ids, docs):
             else:
                 print 'FAILURE: Documents with id {id} do not match: '.format(
                     id=elt['_id']
-                ) + json.dumps({'diff': DeepDiff(docs[elt['_id']], elt), 'new': elt, 'old': docs[elt['_id']]})
+                ) + repr({'diff': DeepDiff(docs[elt['_id']], elt), 'new': elt, 'old': docs[elt['_id']]})
         else:
             print 'ERROR: Document with id {id} missing: {doc}'.format(
                 id=elt['_id'], doc=docs[elt['_id']]
