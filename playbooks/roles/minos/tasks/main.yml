@@ -79,6 +79,23 @@
     force: yes
     mode: "0600"
 
+- name: Clear pip cache
+  file:
+    path: "/root/.cache/pip"
+    state: absent
+
+- name: Clear virtualenv
+  file:
+    path: "{{ minos_app_dir }}/venvs/"
+    state: absent
+
+- name: recreate virtualenv
+  file:
+    path: "{{ minos_app_dir }}/venvs/"
+    state: directory
+    owner: "minos"
+    group: "{{ common_web_group }}"
+
 - name: Install python custom-requirements
   pip:
     name: "{{ item }}"
