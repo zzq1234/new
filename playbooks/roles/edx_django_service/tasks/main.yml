@@ -33,6 +33,7 @@
 - name: install python3
   apt:
     name: "{{ item }}"
+  when: edx_django_service_use_python3
   with_items:
     - python3-pip
     - python3-dev
@@ -42,6 +43,8 @@
 
 - name: build virtualenv with python3
   command: "virtualenv --python=python3 {{ edx_django_service_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_venv_dir }}/bin/pip"
   become_user: "{{ edx_django_service_user }}"
   when: edx_django_service_use_python3
   tags:
@@ -50,6 +53,8 @@
 
 - name: build virtualenv with python2.7
   command: "virtualenv --python=python2.7 {{ edx_django_service_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_venv_dir }}/bin/pip"
   become_user: "{{ edx_django_service_user }}"
   when: not edx_django_service_use_python3
   tags:
