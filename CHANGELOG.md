@@ -295,3 +295,6 @@
 
 - Role: insights
   - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
