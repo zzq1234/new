@@ -1,5 +1,11 @@
 .PHONY: docker.build docker.test docker.pkg
 
+# Define OPENEDX_RELEASE in the environment to build something other than master.
+OPENEDX_RELEASE ?= master
+ifneq ($(OPENEDX_RELEASE),master)
+	IMAGE_PREFIX := $(patsubst open-release/%.master,%/,$(OPENEDX_RELEASE))
+endif
+
 SHARD=0
 SHARDS=1
 
@@ -58,26 +64,30 @@ docker.test: $(foreach image,$(images),$(docker_test)$(image))
 docker.pkg: $(foreach image,$(images),$(docker_pkg)$(image))
 docker.push: $(foreach image,$(images),$(docker_push)$(image))
 
+BUILD_ARGS = --build-arg OPENEDX_RELEASE=$(OPENEDX_RELEASE) --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX)
+BUILD_DIR = .build/$(IMAGE_PREFIX)
+
 $(docker_pull)%:
 	docker pull $(subst @,:,$*)
 
 $(docker_build)%: docker/build/%/Dockerfile
-	docker build -f $< .
+	docker build $(BUILD_ARGS) -f $< .
 
-$(docker_test)%: .build/%/Dockerfile.test
-	docker build -t $*:test -f $< .
+$(docker_test)%: $(BUILD_DIR)%/Dockerfile.test
+	docker build $(BUILD_ARGS) -t $(IMAGE_PREFIX)$*:test -f $< .
 
-$(docker_pkg)%: .build/%/Dockerfile.pkg
-	docker build -t $*:latest -f $< .
+$(docker_pkg)%: $(BUILD_DIR)%/Dockerfile.pkg
+	docker build $(BUILD_ARGS) -t $(IMAGE_PREFIX)$*:latest -f $< .
 
 $(docker_push)%: $(docker_pkg)%
-	docker tag $*:latest edxops/$*:latest
-	docker push edxops/$*:latest
+	docker tag $(IMAGE_PREFIX)$*:latest edxops/$(IMAGE_PREFIX)$*:latest
+	docker push edxops/$(IMAGE_PREFIX)$*:latest
 
+.SECONDARY: $(BUILD_DIR)%/Dockerfile.d $(BUILD_DIR)%/Dockerfile.test $(BUILD_DIR)%/Dockerfile.pkg
 
-.build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
-	@mkdir -p .build/$*
-	$(eval FROM=$(shell grep "^\s*FROM" $< | sed -E "s/FROM //" | sed -E "s/:/@/g"))
+$(BUILD_DIR)%/Dockerfile.d: docker/build/%/Dockerfile Makefile
+	@mkdir -p $(BUILD_DIR)$*
+	$(eval FROM=$(shell grep "^\s*FROM" $< | sed -E "s/FROM //" | sed -E "s/\\\$${IMAGE_PREFIX}//" | sed -E "s/:/@/g"))
 	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed -E "s#edxops/([^@]+)(@.*)?#\1#"))
 	@echo "$(docker_build)$*: $(docker_pull)$(FROM)" > $@
 	@if [ "$(EDXOPS_FROM)" != "$(FROM)" ]; then \
@@ -88,14 +98,14 @@ $(docker_push)%: $(docker_pkg)%
 	echo "$(docker_pkg)$*: $(docker_pull)$(FROM)" >> $@; \
 	fi
 
-.build/%/Dockerfile.test: docker/build/%/Dockerfile Makefile
-	@mkdir -p .build/$*
+$(BUILD_DIR)%/Dockerfile.test: docker/build/%/Dockerfile Makefile
+	@mkdir -p $(BUILD_DIR)$*
 	@# perl p (print the line) n (loop over every line) e (exec the regex), like sed but cross platform
 	@perl -pne "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
-.build/%/Dockerfile.pkg: docker/build/%/Dockerfile Makefile
-	@mkdir -p .build/$*
+$(BUILD_DIR)%/Dockerfile.pkg: docker/build/%/Dockerfile Makefile
+	@mkdir -p $(BUILD_DIR)$*
 	@# perl p (print the line) n (loop over every line) e (exec the regex), like sed but cross platform
 	@perl -pne "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
--include $(foreach image,$(images),.build/$(image)/Dockerfile.d)
+-include $(foreach image,$(images),$(BUILD_DIR)$(image)/Dockerfile.d)
