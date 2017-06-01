@@ -124,11 +124,12 @@ def docs_match(old_doc, new_doc):
 
     for diff_type in diff_types:
         for field in ignorable_fields:
-            #values_changed is a set, the other two are dicts
-            if isinstance(diff_doc[diff_type], set):
-                diff_doc[diff_type].discard(field)
-            else:
-                diff_doc[diff_type].pop(field, None)
+            if diff_type in diff_doc:
+                #values_changed is a set, the other two are dicts
+                if isinstance(diff_doc[diff_type], set):
+                    diff_doc[diff_type].discard(field)
+                else:
+                    diff_doc[diff_type].pop(field, None)
 
     return all(len(diff_doc[diff_type]) == 0 for diff_type in diff_types)
 
