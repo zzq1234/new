@@ -117,6 +117,9 @@ def docs_match(old_doc, new_doc):
     diff_types = ['dictionary_item_added', 'dictionary_item_removed', 'values_changed']
     diff_doc = DeepDiff(old_doc, new_doc)
 
+    if 'values_changed' not in diff_doc:
+        diff_doc['values_changed'] = set()
+
     #if this fails something is horribly wrong
     if set(diff_doc.keys()) != set(diff_types):
         print 'ERROR: expected to be diffing dictionaries, got something else! id: {}'.format(
