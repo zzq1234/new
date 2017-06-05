@@ -80,7 +80,7 @@
     value: "{{ item[0].public_dns_name }}"
   with_nested:
     - "{{ ec2.instances }}"
-    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
+    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'insights']
 
 - name: Add new instance to host group
   local_action:

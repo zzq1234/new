@@ -324,7 +324,7 @@ EOF
     if [[ $server_type == "full_edx_installation" ]]; then
         extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
     fi
-    # run the tasks to launch an ec2 instance from AMI
+    # run the tasks to launch an ec2 instance from AMIF
     cat $extra_vars_file
     run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
@@ -337,7 +337,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses insights"
 
 for role in $roles; do
     deploy[$role]=${!role}
