@@ -1,5 +1,5 @@
 - Role: neo4j
-  - Updated neo4j to 3.0.9, the latest 3.0.x release
+  - Updated neo4j to 3.2.1
 
 - Role: neo4j
   - Enabled splunk forwarding for neo4j logs.
