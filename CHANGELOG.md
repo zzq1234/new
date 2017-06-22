@@ -295,3 +295,6 @@
 
 - Role: insights
   - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.

@@ -692,6 +692,9 @@ EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES:
 # The assigned ICP license number for display in the platform footer
 EDXAPP_ICP_LICENSE: !!null
 
+# Base Cookie Domain to share cookie across edx domains
+EDXAPP_BASE_COOKIE_DOMAIN: "localhost"
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -1068,6 +1071,8 @@ generic_env_config:  &edxapp_generic_env
   HELP_TOKENS_BOOKS: "{{ EDXAPP_HELP_TOKENS_BOOKS }}"
   # License for serving content in China
   ICP_LICENSE: "{{ EDXAPP_ICP_LICENSE }}"
+  # Base Cookie Domain to share cookie across edx domains
+  BASE_COOKIE_DOMAIN: "{{ EDXAPP_BASE_COOKIE_DOMAIN }}"
 
 lms_auth_config:
   <<: *edxapp_generic_auth
