@@ -75,7 +75,7 @@
 - name: set log dir for neo4j
   lineinfile:
     create: yes
-    dest: "{{ neo4j_wrapper_config_file }}"
+    dest: "{{ neo4j_server_config_file }}"
     regexp: "dbms.directories.logs="
     line: "dbms.directories.logs={{ neo4j_log_dir }}"
   tags:
