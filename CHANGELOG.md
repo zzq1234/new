@@ -1,4 +1,7 @@
 - Role: neo4j
+  - Updated neo4j to 3.0.9, the latest 3.0.x release
+
+- Role: neo4j
   - Enabled splunk forwarding for neo4j logs.
   - Increased maximum amount of open files to 40000, as suggested by neo4j.
   - Updated the java build that neo4j uses to run.
