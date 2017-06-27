@@ -1177,6 +1177,7 @@ cms_env_config:
   CELERY_QUEUES: "{{ EDXAPP_CMS_CELERY_QUEUES }}"
   ALTERNATE_WORKER_QUEUES: "lms"
   COURSE_IMPORT_EXPORT_BUCKET: "{{ EDXAPP_IMPORT_EXPORT_BUCKET }}"
+  POLICY_CHANGE_GRADES_ROUTING_KEY: "{{ EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY }}"
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
