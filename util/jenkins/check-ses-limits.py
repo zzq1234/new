@@ -7,15 +7,6 @@ import argparse
 import sys
 
 
-# Takes in a string with a threshold expressed as "percent,label" and returns
-# a tuple with the percentage as a float as the first item and the label
-# as a string as the second item
-# "20,foobar" -> (20, "foobar")
-def parse_threshold(value):
-    r = value.split(',')
-    return (float(r[0]), r[1])
-
-
 # Copied from https://stackoverflow.com/a/41153081
 class ExtendAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -24,23 +15,20 @@ class ExtendAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
-class ThresholdAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        thresholds = getattr(namespace, self.dest) or []
-        thresholds.extend([parse_threshold(t) for t in values])
-        # Thresholds will be tested in order,
-        # so they must be in descending order
-        # Threshold values are expressed as a percentage of the 24 hour limit
-        thresholds.sort(reverse=True)
-        setattr(namespace, self.dest, thresholds)
-
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--threshold', dest='thresholds', nargs='+',
-                    action=ThresholdAction, required=True)
+parser.add_argument('-c', '--crit', required=True, type=float,
+                    help="Critical threshold in percentage")
+parser.add_argument('-w', '--warn', required=False, type=float,
+                    help="Warning threshold in percentage (Optional)")
 parser.add_argument('-r', '--region', dest='regions', nargs='+',
-                    action=ExtendAction, required=True)
+                    action=ExtendAction, required=True,
+                    help="AWS regions to check")
 args = parser.parse_args()
+
+if args.warn and args.warn >= args.crit:
+    print("ERROR: Warning threshold (" + str(args.warn) +
+          ") >= Critical threshold (" + str(args.crit) + ")")
+    sys.exit(1)
 
 exit_code = 0
 
@@ -53,10 +41,11 @@ for region in args.regions:
     percent = current/limit
     out_str = str(current) + "/" + str(limit) + " (" + str(percent) + "%)"
 
-    for (threshold, label) in args.thresholds:
-        if percent > threshold:
-            print(region + " " + out_str + " - " + label)
-            exit_code += 1
-            break
+    if percent >= args.crit:
+        print(region + " " + out_str + " - CRITICAL!")
+        exit_code += 1
+    elif args.warn and percent >= args.warn:
+        print(region + " " + out_str + " - WARNING!")
+        exit_code += 1
 
 sys.exit(exit_code)
