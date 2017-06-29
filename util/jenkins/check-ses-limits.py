@@ -25,9 +25,9 @@ parser.add_argument('-r', '--region', dest='regions', nargs='+',
                     help="AWS regions to check")
 args = parser.parse_args()
 
-if args.warn and args.warn >= args.crit:
-    print("ERROR: Warning threshold (" + str(args.warn) +
-          ") >= Critical threshold (" + str(args.crit) + ")")
+if args.warning and args.warning >= args.critical:
+    print("ERROR: Warning threshold (" + str(args.warning) +
+          ") >= Critical threshold (" + str(args.crititcal) + ")")
     sys.exit(1)
 
 exit_code = 0
@@ -39,13 +39,16 @@ for region in args.regions:
     limit = data["Max24HourSend"]
     current = data["SentLast24Hours"]
     percent = current/limit
-    out_str = str(current) + "/" + str(limit) + " (" + str(percent) + "%)"
+    level = None
 
-    if percent >= args.crit:
-        print(region + " " + out_str + " - CRITICAL!")
-        exit_code += 1
-    elif args.warn and percent >= args.warn:
-        print(region + " " + out_str + " - WARNING!")
+    if percent >= args.critical:
+        level = "CRITICAL"
+    elif args.warning and percent >= args.warning:
+        level = "WARNING"
+
+    if level:
+        print("{} {}/{} ({}%) - {}".format(region, current, limit, percent,
+              level))
         exit_code += 1
 
 sys.exit(exit_code)
