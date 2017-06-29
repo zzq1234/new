@@ -26,8 +26,8 @@ parser.add_argument('-r', '--region', dest='regions', nargs='+',
 args = parser.parse_args()
 
 if args.warning and args.warning >= args.critical:
-    print("ERROR: Warning threshold (" + str(args.warning) +
-          ") >= Critical threshold (" + str(args.crititcal) + ")")
+    print("ERROR: Warning threshold ({}) >= Critical threshold ({})".format(
+          args.warning, args.critical ))
     sys.exit(1)
 
 exit_code = 0
