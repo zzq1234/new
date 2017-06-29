@@ -15,40 +15,42 @@ class ExtendAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--critical', required=True, type=float,
-                    help="Critical threshold in percentage")
-parser.add_argument('-w', '--warning', required=False, type=float,
-                    help="Warning threshold in percentage (Optional)")
-parser.add_argument('-r', '--region', dest='regions', nargs='+',
-                    action=ExtendAction, required=True,
-                    help="AWS regions to check")
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--critical', required=True, type=float,
+                        help="Critical threshold in percentage")
+    parser.add_argument('-w', '--warning', required=False, type=float,
+                        help="Warning threshold in percentage (Optional)")
+    parser.add_argument('-r', '--region', dest='regions', nargs='+',
+                        action=ExtendAction, required=True,
+                        help="AWS regions to check")
+    args = parser.parse_args()
 
-if args.warning and args.warning >= args.critical:
-    print("ERROR: Warning threshold ({}) >= Critical threshold ({})".format(
-          args.warning, args.critical ))
-    sys.exit(1)
+    if args.warning and args.warning >= args.critical:
+        warn_str = "Warning threshold ({})".format(args.warning)
+        crit_str = "Critical threshold ({})".format(args.critical)
+        print("ERROR: {} >= {}".format(warn_str, crit_str))
+        sys.exit(1)
 
-exit_code = 0
+    exit_code = 0
 
-session = boto3.session.Session()
-for region in args.regions:
-    ses = session.client('ses', region_name=region)
-    data = ses.get_send_quota()
-    limit = data["Max24HourSend"]
-    current = data["SentLast24Hours"]
-    percent = current/limit
-    level = None
+    session = boto3.session.Session()
+    for region in args.regions:
+        ses = session.client('ses', region_name=region)
+        data = ses.get_send_quota()
+        limit = data["Max24HourSend"]
+        current = data["SentLast24Hours"]
+        percent = current/limit
+        level = None
 
-    if percent >= args.critical:
-        level = "CRITICAL"
-    elif args.warning and percent >= args.warning:
-        level = "WARNING"
+        if percent >= args.critical:
+            level = "CRITICAL"
+        elif args.warning and percent >= args.warning:
+            level = "WARNING"
 
-    if level:
-        print("{} {}/{} ({}%) - {}".format(region, current, limit, percent,
-              level))
-        exit_code += 1
+        if level:
+            print("{} {}/{} ({}%) - {}".format(region, current, limit, percent,
+                  level))
+            exit_code += 1
 
-sys.exit(exit_code)
+    sys.exit(exit_code)
