@@ -16,9 +16,9 @@ class ExtendAction(argparse.Action):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--crit', required=True, type=float,
+parser.add_argument('-c', '--critical', required=True, type=float,
                     help="Critical threshold in percentage")
-parser.add_argument('-w', '--warn', required=False, type=float,
+parser.add_argument('-w', '--warning', required=False, type=float,
                     help="Warning threshold in percentage (Optional)")
 parser.add_argument('-r', '--region', dest='regions', nargs='+',
                     action=ExtendAction, required=True,
